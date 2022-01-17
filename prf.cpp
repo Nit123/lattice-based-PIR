@@ -4,8 +4,8 @@
 #include <iostream>
 #include <fstream>
 
-#define M 500
-#define N 250
+#define M 1000
+#define N 500
 #define p 65535 //(2^16-1)
 #define q 4294967296
 
@@ -60,28 +60,31 @@ long long int* prf(long long int A[N][M], long long int x[M]){
     static long long int rand[N];
     double ratio = q / p;
 
+    double temp = 0;
+
     for(int i = 0; i < N; ++i){
         for(int j = 0; j < M; ++j){
-            rand[i] += (A[i][j] * x[j]);
+            temp += (A[i][j] * x[j]);
         }
 
         // // // rounding to p
         //     // // dumb way: x = rand[i]
         //     // // ratio while loop until we get the answer
-            // int count = 1;
+            int count = 1;
 
-            // cout << "rounding" << endl;
-            // while(count * ratio < rand[i]){
-            //     count++;
-            // }
-            // cout << "rounding done." << endl;
+            cout << "rounding" << endl;
+            while(count * ratio < temp){
+                count++;
+            }
+            cout << "rounding done." << endl;
 
-            // if(count - 1 == 0){
-            //     cout << "ratio: " << ratio << "rand[i]: " << rand[i] << endl; 
-            // }
-            // rand[i] = (count - 1) * ratio;
+            if(count - 1 == 0){
+                cout << "ratio: " << ratio << "temp: " << temp << endl; 
+            }
+            rand[i] = (count - 1) * ratio;
            
-            // count = 1;
+            count = 1;
+            temp = 0;
         // }
     }
 
