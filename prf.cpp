@@ -9,9 +9,9 @@
 
 #define M 1000 // change to 500 for uint64_t version
 #define N 500 // change to 250 for uint64_t version
-#define p 4294967296 //(2^16-1)
-#define q 65535 // (2^32)...
-#define ratio p/q
+#define p 65535 //(2^16-1)
+#define q 4294967296 // (2^32)...
+#define ratio q/p
 
 
 
@@ -199,7 +199,7 @@ uint64_t* prf(uint64_t A[N][M], uint64_t x[M]){
             if(count - 1 == 0){
                 cout << "ratio: " << ratio << "temp: " << temp << endl; 
             }
-            rand[i] = (count - 1) * ratio;
+            rand[i] = count-1;
            
             count = 1;
             temp = 0;
