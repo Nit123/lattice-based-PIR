@@ -104,11 +104,17 @@ void initializeArrays(uint64_t A[N][M], uint64_t x[M]){
     for(int i = 0; i < N; ++i){
         for(int j = 0; j < M; ++j){
             A[i][j] = distr(gen);
+            if(A[i][j] > q){
+                cout << "Assigned an invalid element in A" << endl;
+            }
         }
     }
 
     for(int i = 0; i < M; i++){
         x[i] = distr(gen);
+        if(x[i] > q){
+                cout << "Assigned an invalid element in A" << endl;
+        }
     }
 }
 
@@ -181,25 +187,29 @@ uint64_t* prf(uint64_t A[N][M], uint64_t x[M]){
 
     for(int i = 0; i < N; ++i){
         for(int j = 0; j < M; ++j){
-            temp = temp + ((A[i][j] * x[j]) % p);
+            temp = (temp + ((A[i][j] * x[j]) % q)) % q;
         }
 
         // // // rounding to p
         //     // // dumb way: x = rand[i]
         //     // // ratio while loop until we get the answer
             uint64_t count = 1;
+            uint64_t multiple = (uint64_t) ratio;
 
-            cout << "Start rounding" << endl;
-            while(count *  ratio < temp){
+            //cout << "Start rounding" << endl;
+            while(count *  multiple < temp && temp != 0){
                 count++;
-                //cout << "ratio: " << ratio << endl;
             }
-            cout << "End rounding" << endl;
+            //cout << "End rounding" << endl;
 
             if(count - 1 == 0){
-                cout << "ratio: " << ratio << "temp: " << temp << endl; 
+                //cout << "ratio: " << ratio << "temp: " << temp << endl; 
+                rand[i] = count;
             }
-            rand[i] = count-1;
+            else{
+                rand[i] = count-1;
+            }
+           
            
             count = 1;
             temp = 0;
