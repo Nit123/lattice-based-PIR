@@ -6,67 +6,67 @@
 #include <string>
 #include <sstream>
 
-#define M 1000
-#define N 500
+
+#define M 1000 // change to 500 for long long int version
+#define N 500 // change to 250 for long long int version
 #define p 65535 //(2^16-1)
 #define q 4294967296 // (2^32)...
+#define ratio q/p
 
 
 
 using namespace std;
 
-// Main key-homomorphic PRF
-long long int* prf(long long int A[N][M], long long int x[M]);
+/*
+    INTEGER VERSION OF THE PRF: requires M and N to be smaller 
+*/
+long long int* prf(long long int A[N][M], long long int x[M]); // main PRF function
+void initializeArrays(long long int A[N][M], long long int x[M]); // initializes random arrays
+void testIntegerPRF(); // tester
 
-// Initialize random arrays (not using files)
-void initializeArrays(double A[N][M], double x[M]);
 
-// Initialize random arrays into files
-void initializeArraysIntoFiles();
-
-// A is stored in a file while we use x from stack. Worse case, might have to 
-// make result vector into file... will see
-double* prf_from_files(double x[M]);
+/*
+    FLOATING POINT VERSION OF PRF: M and N can be large but requires matrices to be outputted and read to a file
+*/
+void initializeArraysIntoFiles(); // Initialize random arrays into files
+double* prf_from_files(); // PRF that reads from files
+void testRealPRF(); // tester
 
 int main(int argc, char *argv[]){
-    // long long int A[N][M] = {};
-    //long long int x[M] = {};
+    //testIntegerPRF();
+    testRealPRF();
 
-    double x[M] = {};
+    return 0;
+}
 
-    // initializeArrays(A, x);
-    // cout << "Left initalize arrays" << endl;
-    // long long int* randomNum = prf(A, x);
+void testIntegerPRF(){
+    long long int A[N][M] = {};
+    long long int x[M] = {};
 
-    // ofstream myfile;
-    // myfile.open("output.txt");
-    // for(int i = 0; i < N; i++){
-    //     cout << randomNum[i] << " ";
-    // }
-    // myfile.close();
+    cout << "Initializing arrays" << endl;
+    initializeArrays(A, x);
+    cout << "Finished initializing arrays" << endl;
 
-    // return 0;
+    cout << "Beginning prf" << endl;
+    long long int* randomNum = prf(A, x);
+    cout << "end of prf" << endl << endl;
 
-    // initialize x and A
-    initializeArraysIntoFiles();
-
-    // we can read into x (I think) since it shouldn't break
-    int i = 0;
-    long long int value;
-    ifstream x_file;
-    x_file.open("x.txt");
-    while(x_file >> value){
-        x[i] = value;
-        i++;
-    }
-    x_file.close();
-
-    double* randomNum = prf_from_files(x);
     for(int i = 0; i < N; i++){
         cout << randomNum[i] << " ";
     }
 
-    return 0;
+    return;
+}
+
+void testRealPRF(){
+    initializeArraysIntoFiles();
+    double *randomNum = prf_from_files();
+
+     for(int i = 0; i < N; i++){
+        cout << randomNum[i] << " ";
+    }
+
+    return;
 }
 
 void initializeArraysIntoFiles(){
@@ -111,12 +111,25 @@ void initializeArrays(long long int A[N][M], long long int x[M]){
     }
 }
 
-double* prf_from_files(double x[M]){
+double* prf_from_files(){
+    double x[M] = {};
+
+    long long int temp_val;
+    int i = 0;
+    ifstream x_file;
+    x_file.open("x.txt");
+    while(x_file >> temp_val){
+        x[i] = temp_val;
+        i++;
+    }
+    x_file.close();
+
+
     static double rand[N];
-    double ratio = q / p;
+    //double ratio = q / p;
 
     // double temp_product = 0;
-    double temp[M] = {};
+    double row_vector[M] = {};
 
     string line;
     ifstream A_file;
@@ -127,10 +140,10 @@ double* prf_from_files(double x[M]){
         getline(A_file, line);
         stringstream stream(line);
         
-        long long int i;
+        long long int element;
 
-        while(stream >> i){
-            temp[count] = i;
+        while(stream >> element){
+            row_vector[count] = element;
             count++;
         }
         count = 0;
@@ -138,7 +151,7 @@ double* prf_from_files(double x[M]){
 
         // do the calculation you need for this line
         for(int i = 0; i < M; i++){
-            rand[linecount] += (temp[i] * x[linecount]);
+            rand[linecount] += (row_vector[i] * x[linecount]);
         }
 
         cout << "Start rounding" << endl;
@@ -160,10 +173,9 @@ double* prf_from_files(double x[M]){
 }
 
 long long int* prf(long long int A[N][M], long long int x[M]){
-    cout << "in PRF" << endl;
+    //cout << "in PRF" << endl;
     static long long int rand[N];
-    double ratio = q / p;
-
+    //double ratio = q/p;
     double temp = 0;
 
     for(int i = 0; i < N; ++i){
@@ -176,11 +188,12 @@ long long int* prf(long long int A[N][M], long long int x[M]){
         //     // // ratio while loop until we get the answer
             int count = 1;
 
-            cout << "rounding" << endl;
-            while(count * ratio < temp){
+            cout << "Start rounding" << endl;
+            while(count *  ratio < temp){
                 count++;
+                //cout << "ratio: " << ratio << endl;
             }
-            cout << "rounding done." << endl;
+            cout << "End rounding" << endl;
 
             if(count - 1 == 0){
                 cout << "ratio: " << ratio << "temp: " << temp << endl; 
