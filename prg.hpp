@@ -19,7 +19,7 @@
 
 namespace LWE {
 
-    using uint128_t = __uint128_t;
+    //using unsigned __int128 = unsigned __int128;
 
     constexpr const double expand = 6.0;
     constexpr const uint32_t query_size = 4;
@@ -42,7 +42,7 @@ namespace LWERandomness {
 
     class PseudoRandomGenerator {
     private:
-        __uint128_t _counter;
+        unsigned __int128 _counter;
         AES_KEY PRG_key;
 
     public:
@@ -62,10 +62,10 @@ namespace LWERandomness {
                 this->PRG_key.rd_key[i] = _key.rd_key[i];
         }
 
-        __uint128_t next_prg_block() {
+        unsigned __int128 next_prg_block() {
             auto blk = block(this->_counter++);
             AES_ecb_encrypt_blk(&blk, &this->PRG_key);
-            return __uint128_t(blk);
+            return (unsigned) __int128(blk);
         }
 
         template <uint64_t LENGTH, typename T>
@@ -85,12 +85,12 @@ namespace LWERandomness {
             }
         }
 
-        __uint128_t bounded(__uint128_t bound) {
+        unsigned __int128 bounded(unsigned __int128 bound) {
             if (!(bound & (bound - 1)))
                 return this->next_prg_block() & (bound - 1);
             else {
                 // REJECT SAMPLING
-                __uint128_t w_param = (__uint128_t(0) - 1) / bound,
+                unsigned __int128 w_param = (((unsigned) __int128(0)) - 1) / bound,
                             w_bound = w_param * bound,
                             buffer = this->next_prg_block();
                 while (buffer >= w_bound)
@@ -99,10 +99,10 @@ namespace LWERandomness {
             }
         }
 
-        __int128_t pm_bounded(__uint128_t bound) {
+       __int128 pm_bounded(unsigned __int128 bound) {
             // bound should be less than 2^127
             // REJECT SAMPLING
-            __uint128_t w_param = (~(__uint128_t(1) << 127)) / bound;
+            unsigned __int128 w_param = (~(((unsigned) __int128(1)) << 127)) / bound;
             __int128_t w_bound = w_param * bound,
                        buffer = __int128_t(this->next_prg_block());
             while (buffer >= w_bound || buffer <= -w_bound)
@@ -142,7 +142,7 @@ namespace LWERandomness {
         DiscreteGaussian(DiscreteGaussian &&dg) = default;
 
         int sample() {
-            __uint128_t sample_res = prg.next_prg_block();
+            unsigned __int128 sample_res = prg.next_prg_block();
             auto rnd = sample_res >> 64u;
             auto which_bucket = --this->probability_interval.lower_bound(rnd);
             return which_bucket->second;
