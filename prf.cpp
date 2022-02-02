@@ -5,6 +5,9 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include "aes.hpp"
+#include "prg.hpp"
+
 
 
 #define M 1000 // change to 500 for uint64_t version
@@ -16,203 +19,214 @@
 
 
 using namespace std;
+using namespace LWERandomness;
 
 /*
-    INTEGER VERSION OF THE PRF: requires M and N to be smaller 
+    INTEGER VERSION OF THE PRF
 */
 uint64_t* prf(uint64_t A[N][M], uint64_t x[M]); // main PRF function
-void initializeArrays(uint64_t A[N][M], uint64_t x[M]); // initializes random arrays
-void testIntegerPRF(); // tester
+//void initializeArrays(uint64_t A[N][M], uint64_t x[M]); // initializes random arrays
+uint64_t* testIntegerPRF(); // tester
+void initalizeArrayA(uint64_t A[N][M]);
+void initalizeArrayX(uint64_t x[M]);
 
-
-// /*
-//     FLOATING POINT VERSION OF PRF: M and N can be large but requires matrices to be outputted and read to a file
-// */
-// void initializeArraysIntoFiles(); // Initialize random arrays into files
-// double* prf_from_files(); // PRF that reads from files
-// void testRealPRF(); // tester
 
 int main(int argc, char *argv[]){
-    testIntegerPRF();
-    //testRealPRF();
+   ofstream myf;
+	myf.open("data.txt");
+	uint64_t *result;
+	uint64_t min = 65536;
+	uint64_t max = 0;
+	for(int i = 0; i < 1000; i++){
+		result = testIntegerPRF();
+		for(int j = 0; j < N; j++){
+			if(result[j] > max){
+				max = result[j];
+			}
+			if(result[j] < min){
+				min = result[j];
+			}
+			myf << result[j] << "\n";
+		}
+	}
 
+	myf.close();
+	cout << "Min: " << min << endl;
+	cout << "Max: " << max << endl;
     return 0;
 }
 
-void testIntegerPRF(){
+uint64_t* testIntegerPRF(){
     //uint64_t A[N][M] = {};
     auto A = new uint64_t[N][M];
     uint64_t *x = new uint64_t[M];
 
     cout << "Initializing arrays" << endl;
-    initializeArrays(A, x);
+    //initializeArrays(A, x);
+    initalizeArrayA(A);
+    initalizeArrayX(x);
     cout << "Finished initializing arrays" << endl;
 
     cout << "Beginning prf" << endl;
     uint64_t* randomNum = prf(A, x);
     cout << "end of prf" << endl << endl;
 
-    for(int i = 0; i < N; i++){
-        cout << randomNum[i] << " ";
-    }
+    // for(int i = 0; i < N; i++){
+    //     cout << randomNum[i] << " ";
+    // }
 
-    return;
+    return randomNum;
 }
 
-// void testRealPRF(){
-//     initializeArraysIntoFiles();
-//     double *randomNum = prf_from_files();
+void initalizeArrayA(uint64_t A[N][M]){
+	byte buffer[16];
+  	static ifstream urandom("/dev/urandom", std::ios::binary);
+  	urandom.read(reinterpret_cast<char *>(buffer), 16);
+  	//urandom.close();
 
-//      for(int i = 0; i < N; i++){
-//         cout << randomNum[i] << " ";
-//     }
+  	AES_KEY aes_key{};
+  	AES_128_Key_Expansion(buffer, &aes_key);
+  	block blk;
+  	
 
-//     return;
-// }
+  	for(int i = 0; i < N; ++i){
+  		for(int j = 0; j < M; j += 4){
+  			block tmp = blk;
+  			AES_ecb_encrypt_blk(&blk, &aes_key);
 
-// void initializeArraysIntoFiles(){
-//     random_device rd;
-//     std::mt19937 gen(rd());
-//     uniform_int_distribution<uint64_t> distr(0, q);
-//     cout << "Initializing arrays and placing into files" << endl;
-//     ofstream A_file, x_file;
-//     A_file.open("A.txt");
+  			__int128 num = (__int128) blk;
+  			uint64_t half = 0;
+  			half = half | num;
+  			uint64_t quarter = half >> 32; // now we got the upper 32-bits
+  			A[i][j] = quarter;
+  			quarter = half << 32;
+  			quarter = quarter >> 32;
+  			A[i][j+1] = quarter;
+
+  			half = 0;
+  			num = num >> 64;
+  			half = half | num;
+  			quarter = half >> 32;
+  			A[i][j+2] = quarter;
+  			quarter = half << 32;
+  			quarter = quarter >> 32;
+  			A[i][j+3] = quarter;
+
+  			blk = ++tmp;
+  		}
+  		urandom.read(reinterpret_cast<char *>(buffer), 16);
+  		AES_KEY aes_key{};
+  		AES_128_Key_Expansion(buffer, &aes_key);
+  	}
+
+  	urandom.close();
+}
+
+void initalizeArrayX(uint64_t x[M]){
+	byte buffer[16];
+  	static ifstream urandom("/dev/urandom", std::ios::binary);
+  	urandom.read(reinterpret_cast<char *>(buffer), 16);
+  	//urandom.close();
+
+  	AES_KEY aes_key{};
+  	AES_128_Key_Expansion(buffer, &aes_key);
+  	block blk;
+  	
+
+  	for(int i = 0; i < M; i+=4){
+  		block tmp = blk;
+  		AES_ecb_encrypt_blk(&blk, &aes_key);
+
+  		__int128 num = (__int128) blk;
+  		uint64_t half = 0;
+  		half = half | num;
+  		uint64_t quarter = half >> 32; // now we got the upper 32-bits
+  		x[i] = quarter;
+  		quarter = half << 32;
+  		quarter = quarter >> 32;
+  		x[i+1] = quarter;
+
+  		half = 0;
+  		num = num >> 64;
+  		half = half | num;
+  		quarter = half >> 32;
+  		x[i+2] = quarter;
+  		quarter = half << 32;
+  		quarter = quarter >> 32;
+  		x[i+3] = quarter;
+
+  		blk = tmp + 1;		
+
+  		urandom.read(reinterpret_cast<char *>(buffer), 16);
+  		AES_KEY aes_key{};
+  		AES_128_Key_Expansion(buffer, &aes_key);
+  	}
+
+  	urandom.close();
+ }
+
+
+// void initializeArrays(uint64_t A[N][M], uint64_t x[M]){
+//     // random_device rd;
+//     // std::mt19937 gen(rd());
+//     // uniform_int_distribution<uint64_t> distr(0, q);
+
+//     cout << "in Initialize Arrays" << endl;
 //     for(int i = 0; i < N; ++i){
 //         for(int j = 0; j < M; ++j){
-//             A_file << distr(gen) << " ";
+//             A[i][j] = distr(gen);
+//             if(A[i][j] > q){
+//                 cout << "Assigned an invalid element in A" << endl;
+//             }
 //         }
-
-//         A_file << endl;
 //     }
 
-//     A_file.close();
-
-//     x_file.open("x.txt");
 //     for(int i = 0; i < M; i++){
-//         x_file << distr(gen) << " ";
+//         x[i] = distr(gen);
+//         if(x[i] > q){
+//                 cout << "Assigned an invalid element in A" << endl;
+//         }
 //     }
-
-//     x_file.close();
-//     return;
 // }
 
-void initializeArrays(uint64_t A[N][M], uint64_t x[M]){
-    random_device rd;
-    std::mt19937 gen(rd());
-    uniform_int_distribution<uint64_t> distr(0, q);
-    cout << "in Initialize Arrays" << endl;
-    for(int i = 0; i < N; ++i){
-        for(int j = 0; j < M; ++j){
-            A[i][j] = distr(gen);
-            if(A[i][j] > q){
-                cout << "Assigned an invalid element in A" << endl;
-            }
-        }
-    }
-
-    for(int i = 0; i < M; i++){
-        x[i] = distr(gen);
-        if(x[i] > q){
-                cout << "Assigned an invalid element in A" << endl;
-        }
-    }
-}
-
-// double* prf_from_files(){
-//     double x[M] = {};
-
-//     uint64_t temp_val;
-//     int i = 0;
-//     ifstream x_file;
-//     x_file.open("x.txt");
-//     while(x_file >> temp_val){
-//         x[i] = temp_val;
-//         i++;
-//     }
-//     x_file.close();
-
-
-//     static double rand[N];
-//     //double ratio = q / p;
-
-//     // double temp_product = 0;
-//     double row_vector[M] = {};
-
-//     string line;
-//     ifstream A_file;
-//     int count = 0;
-//     int linecount = 0;
-//     A_file.open("A.txt");
-//     while(A_file){
-//         getline(A_file, line);
-//         stringstream stream(line);
-        
-//         uint64_t element;
-
-//         while(stream >> element){
-//             row_vector[count] = element;
-//             count++;
-//         }
-//         count = 0;
-
-
-//         // do the calculation you need for this line
-//         for(int i = 0; i < M; i++){
-//             rand[linecount] += (row_vector[i] * x[linecount]);
-//         }
-
-//         cout << "Start rounding" << endl;
-//         // rounding protocol
-//         double count2 = 1;
-//         while(count2 * ratio < rand[linecount]){
-//             count2 *= 2;
-//         }
-
-//         rand[linecount] = round((count2-1) * ratio);
-//         count2 = 1;
-
-//         linecount++;
-//         //count++;
-//         cout << "end rounding" << endl;
-//     }
-
-//     return rand;
-// }
 
 uint64_t* prf(uint64_t A[N][M], uint64_t x[M]){
     //cout << "in PRF" << endl;
-    static uint64_t rand[N];
-    //double ratio = q/p;
+    uint64_t *rand = new uint64_t[N];
     uint64_t temp = 0;
 
     for(int i = 0; i < N; ++i){
         for(int j = 0; j < M; ++j){
-            temp = (temp + ((A[i][j] * x[j]) % q)) % q;
+            temp = (temp + ((A[i][j] * x[j]))) % q;
         }
 
         // // // rounding to p
         //     // // dumb way: x = rand[i]
         //     // // ratio while loop until we get the answer
-            uint64_t count = 1;
-            uint64_t multiple = (uint64_t) ratio;
+        	uint64_t increment = (uint64_t) ratio;
 
-            //cout << "Start rounding" << endl;
-            while(count *  multiple < temp && temp != 0){
-                count++;
-            }
-            //cout << "End rounding" << endl;
+        	rand[i] = temp / increment;
+        	
+            // uint64_t count = 1;
+            // uint64_t multiple = (uint64_t) ratio;
 
-            if(count - 1 == 0){
-                //cout << "ratio: " << ratio << "temp: " << temp << endl; 
-                rand[i] = count;
-            }
-            else{
-                rand[i] = count-1;
-            }
+            // //cout << "Start rounding" << endl;
+            // // while(count *  multiple < temp && temp != 0){
+            // //     count++;
+            // // }
+            // // //cout << "End rounding" << endl;
+
+            // // if(count - 1 == 0){
+            // //     //cout << "ratio: " << ratio << "temp: " << temp << endl; 
+            // //     rand[i] = count;
+            // // }
+            // // else{
+            // //     rand[i] = count-1;
+            // // }
            
            
-            count = 1;
-            temp = 0;
+            // count = 1;
+            // temp = 0;
         // }
     }
 
