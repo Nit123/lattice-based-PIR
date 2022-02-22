@@ -25,10 +25,9 @@ using namespace LWERandomness;
     INTEGER VERSION OF THE PRF
 */
 uint64_t* prf(uint64_t A[N][M], uint64_t x[M]); // main PRF function
-//void initializeArrays(uint64_t A[N][M], uint64_t x[M]); // initializes random arrays
 uint64_t* testIntegerPRF(); // tester
-void initalizeArrayA(uint64_t A[N][M]);
-void initalizeArrayX(uint64_t x[M]);
+void initalizeArrayA(uint64_t A[N][M]); // initializes matrix A
+void initalizeArrayX(uint64_t x[M]); 	// initializes vector x which serves as the key for the PRG (later on)
 
 
 int main(int argc, char *argv[]){
@@ -57,12 +56,10 @@ int main(int argc, char *argv[]){
 }
 
 uint64_t* testIntegerPRF(){
-    //uint64_t A[N][M] = {};
     auto A = new uint64_t[N][M];
     uint64_t *x = new uint64_t[M];
 
     cout << "Initializing arrays" << endl;
-    //initializeArrays(A, x);
     initalizeArrayA(A);
     initalizeArrayX(x);
     cout << "Finished initializing arrays" << endl;
@@ -71,10 +68,6 @@ uint64_t* testIntegerPRF(){
     uint64_t* randomNum = prf(A, x);
     cout << "end of prf" << endl << endl;
 
-    // for(int i = 0; i < N; i++){
-    //     cout << randomNum[i] << " ";
-    // }
-
     return randomNum;
 }
 
@@ -82,7 +75,6 @@ void initalizeArrayA(uint64_t A[N][M]){
 	byte buffer[16];
   	static ifstream urandom("/dev/urandom", std::ios::binary);
   	urandom.read(reinterpret_cast<char *>(buffer), 16);
-  	//urandom.close();
 
   	AES_KEY aes_key{};
   	AES_128_Key_Expansion(buffer, &aes_key);
@@ -126,7 +118,6 @@ void initalizeArrayX(uint64_t x[M]){
 	byte buffer[16];
   	static ifstream urandom("/dev/urandom", std::ios::binary);
   	urandom.read(reinterpret_cast<char *>(buffer), 16);
-  	//urandom.close();
 
   	AES_KEY aes_key{};
   	AES_128_Key_Expansion(buffer, &aes_key);
@@ -166,32 +157,7 @@ void initalizeArrayX(uint64_t x[M]){
  }
 
 
-// void initializeArrays(uint64_t A[N][M], uint64_t x[M]){
-//     // random_device rd;
-//     // std::mt19937 gen(rd());
-//     // uniform_int_distribution<uint64_t> distr(0, q);
-
-//     cout << "in Initialize Arrays" << endl;
-//     for(int i = 0; i < N; ++i){
-//         for(int j = 0; j < M; ++j){
-//             A[i][j] = distr(gen);
-//             if(A[i][j] > q){
-//                 cout << "Assigned an invalid element in A" << endl;
-//             }
-//         }
-//     }
-
-//     for(int i = 0; i < M; i++){
-//         x[i] = distr(gen);
-//         if(x[i] > q){
-//                 cout << "Assigned an invalid element in A" << endl;
-//         }
-//     }
-// }
-
-
 uint64_t* prf(uint64_t A[N][M], uint64_t x[M]){
-    //cout << "in PRF" << endl;
     uint64_t *rand = new uint64_t[N];
     uint64_t temp = 0;
 
@@ -200,34 +166,10 @@ uint64_t* prf(uint64_t A[N][M], uint64_t x[M]){
             temp = (temp + ((A[i][j] * x[j]))) % q;
         }
 
-        // // // rounding to p
-        //     // // dumb way: x = rand[i]
-        //     // // ratio while loop until we get the answer
-        	uint64_t increment = (uint64_t) ratio;
+        // rounding to p
+        uint64_t increment = (uint64_t) ratio;
 
-        	rand[i] = temp / increment;
-        	
-            // uint64_t count = 1;
-            // uint64_t multiple = (uint64_t) ratio;
-
-            // //cout << "Start rounding" << endl;
-            // // while(count *  multiple < temp && temp != 0){
-            // //     count++;
-            // // }
-            // // //cout << "End rounding" << endl;
-
-            // // if(count - 1 == 0){
-            // //     //cout << "ratio: " << ratio << "temp: " << temp << endl; 
-            // //     rand[i] = count;
-            // // }
-            // // else{
-            // //     rand[i] = count-1;
-            // // }
-           
-           
-            // count = 1;
-            // temp = 0;
-        // }
+        rand[i] = temp / increment;
     }
 
     return rand;
