@@ -33,6 +33,8 @@ uint64_t prg(uint64_t seed[M]);
 auto A_matrix = new uint64_t[N][M];
 int counter = 0;
 
+static ifstream urandom("/dev/urandom", std::ios::binary);
+
 int main(int argc, char *argv[]){
  //   ofstream myf;
 	// myf.open("data.txt");
@@ -56,12 +58,22 @@ int main(int argc, char *argv[]){
 	// cout << "Min: " << min << endl;
 	// cout << "Max: " << max << endl;
  //    return 0;
-
+	ofstream myf;
+	myf.open("prgdata.txt");
 	auto x = new uint64_t[M];
-	initalizeArrayX(x);
-	uint64_t val = prg(x);
 
-	cout << "val: " << val << endl;
+	for(int i = 0; i < 1000000; i++){
+		if(i % 100000 == 0)
+			cout << "on " << i << endl;
+		initalizeArrayX(x);
+		uint64_t val = prg(x);
+		myf << val << "\n";
+		//cout << "val: " << val << endl << endl;
+	}
+
+	urandom.close();
+	myf.close();
+	
 	return 0;
 }
 
@@ -83,7 +95,7 @@ uint64_t* testIntegerPRF(){
 
 void initalizeArrayA(uint64_t A[N][M]){
 	byte buffer[16];
-  	static ifstream urandom("/dev/urandom", std::ios::binary);
+  	//static ifstream urandom("/dev/urandom", std::ios::binary);
   	urandom.read(reinterpret_cast<char *>(buffer), 16);
 
   	AES_KEY aes_key{};
@@ -121,12 +133,12 @@ void initalizeArrayA(uint64_t A[N][M]){
   		AES_128_Key_Expansion(buffer, &aes_key);
   	}
 
-  	urandom.close();
+  	//urandom.close();
 }
 
 void initalizeArrayX(uint64_t x[M]){
 	byte buffer[16];
-  	static ifstream urandom("/dev/urandom", std::ios::binary);
+  	
   	urandom.read(reinterpret_cast<char *>(buffer), 16);
 
   	AES_KEY aes_key{};
@@ -163,7 +175,7 @@ void initalizeArrayX(uint64_t x[M]){
   		AES_128_Key_Expansion(buffer, &aes_key);
   	}
 
-  	urandom.close();
+  	//urandom.close();
  }
 
 
@@ -188,18 +200,19 @@ uint64_t* prf(uint64_t A[N][M], uint64_t x[M]){
 uint64_t prg(uint64_t seed[M]){
 	if(counter == 0){
 		initalizeArrayA(A_matrix);
+		counter++;
 	}
 
 	byte buffer[4];
 	unsigned int point;
-  	static ifstream urandom("/dev/urandom", std::ios::binary);
+  	//static ifstream urandom("/dev/urandom", std::ios::binary);
   	urandom.read(reinterpret_cast<char *>(buffer), 4);
-  	urandom.close();
+  	//urandom.close();
 
   	memcpy(&point, buffer, sizeof(int)); // got random point
-  	cout << "point (before rounding): " << point << endl;
+  	//cout << "point (before rounding): " << point << endl;
   	point = point % N;
-  	cout << "point (after rounding): " << point << endl;
+  	//cout << "point (after rounding): " << point << endl;
 
 
   	uint64_t* result = prf(A_matrix, seed);
