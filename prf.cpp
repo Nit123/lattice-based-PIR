@@ -29,30 +29,40 @@ uint64_t* testIntegerPRF(); // tester
 void initalizeArrayA(uint64_t A[N][M]); // initializes matrix A
 void initalizeArrayX(uint64_t x[M]); 	// initializes vector x which serves as the key for the PRG (later on)
 
+uint64_t prg(uint64_t seed[M]);
+auto A_matrix = new uint64_t[N][M];
+int counter = 0;
 
 int main(int argc, char *argv[]){
-   ofstream myf;
-	myf.open("data.txt");
-	uint64_t *result;
-	uint64_t min = 65536;
-	uint64_t max = 0;
-	for(int i = 0; i < 1000; i++){
-		result = testIntegerPRF();
-		for(int j = 0; j < N; j++){
-			if(result[j] > max){
-				max = result[j];
-			}
-			if(result[j] < min){
-				min = result[j];
-			}
-			myf << result[j] << "\n";
-		}
-	}
+ //   ofstream myf;
+	// myf.open("data.txt");
+	// uint64_t *result;
+	// uint64_t min = 65536;
+	// uint64_t max = 0;
+	// for(int i = 0; i < 1000; i++){
+	// 	result = testIntegerPRF();
+	// 	for(int j = 0; j < N; j++){
+	// 		if(result[j] > max){
+	// 			max = result[j];
+	// 		}
+	// 		if(result[j] < min){
+	// 			min = result[j];
+	// 		}
+	// 		myf << result[j] << "\n";
+	// 	}
+	// }
 
-	myf.close();
-	cout << "Min: " << min << endl;
-	cout << "Max: " << max << endl;
-    return 0;
+	// myf.close();
+	// cout << "Min: " << min << endl;
+	// cout << "Max: " << max << endl;
+ //    return 0;
+
+	auto x = new uint64_t[M];
+	initalizeArrayX(x);
+	uint64_t val = prg(x);
+
+	cout << "val: " << val << endl;
+	return 0;
 }
 
 uint64_t* testIntegerPRF(){
@@ -173,4 +183,26 @@ uint64_t* prf(uint64_t A[N][M], uint64_t x[M]){
     }
 
     return rand;
+}
+
+uint64_t prg(uint64_t seed[M]){
+	if(counter == 0){
+		initalizeArrayA(A_matrix);
+	}
+
+	byte buffer[4];
+	unsigned int point;
+  	static ifstream urandom("/dev/urandom", std::ios::binary);
+  	urandom.read(reinterpret_cast<char *>(buffer), 4);
+  	urandom.close();
+
+  	memcpy(&point, buffer, sizeof(int)); // got random point
+  	cout << "point (before rounding): " << point << endl;
+  	point = point % N;
+  	cout << "point (after rounding): " << point << endl;
+
+
+  	uint64_t* result = prf(A_matrix, seed);
+
+  	return result[point];
 }
