@@ -7,6 +7,7 @@
 #include <sstream>
 #include "aes.hpp"
 #include "prg.hpp"
+#include "share.cpp"
 
 
 
@@ -15,7 +16,9 @@
 #define p 65535 //(2^16-1)
 #define q 4294967296 // (2^32)...
 #define ratio q/p
-
+#define N_dpf 1024
+#define sqrt_N_dpf 32
+#define number_of_servers 2
 
 
 using namespace std;
@@ -32,6 +35,9 @@ void initalizeArrayX(uint64_t x[M]); 	// initializes vector x which serves as th
 uint64_t prg(uint64_t seed[M]);
 auto A_matrix = new uint64_t[N][M];
 int counter = 0;
+uint64_t* create_ej(uint64_t j);
+Share* dpf(uint64_t x);
+
 
 static ifstream urandom("/dev/urandom", std::ios::binary);
 
@@ -58,24 +64,98 @@ int main(int argc, char *argv[]){
 	// cout << "Min: " << min << endl;
 	// cout << "Max: " << max << endl;
  //    return 0;
-	ofstream myf;
-	myf.open("prgdata.txt");
-	auto x = new uint64_t[M];
+	// ofstream myf;
+	// myf.open("prgdata.txt");
+	// auto x = new uint64_t[M];
 
-	for(int i = 0; i < 1000000; i++){
-		if(i % 100000 == 0)
-			cout << "on " << i << endl;
-		initalizeArrayX(x);
-		uint64_t val = prg(x);
-		myf << val << "\n";
-		//cout << "val: " << val << endl << endl;
-	}
+	// for(int i = 0; i < 1000000; i++){
+	// 	if(i % 100000 == 0)
+	// 		cout << "on " << i << endl;
+	// 	initalizeArrayX(x);
+	// 	uint64_t val = prg(x);
+	// 	myf << val << "\n";
+	// 	//cout << "val: " << val << endl << endl;
+	// }
 
-	urandom.close();
-	myf.close();
-	
+	// urandom.close();
+	// myf.close();
+	// initializeDomainDPF(domain);
+	// for(int i = 0; i < sqrt_N_dpf; i++){
+	// 	for(int j = 0; j < sqrt_N_dpf; j++){
+	// 		cout << domain[i][j] << " ";
+	// 	}
+	// 	cout << endl;
+	// }
 	return 0;
 }
+
+Share* dpf(uint64_t x){
+  uint64_t i_star = x / sqrt_N_dpf;
+  uint64_t j = x % sqrt_N_dpf;
+  auto ej = new uint64_t[sqrt_N_dpf];
+  ej[j] = 1;
+  
+  auto shares = new Share[number_of_servers];
+  for(int i = 0; i < number_of_servers-1; i++){
+    Share s = new Share();
+    // need to randomize bits except for bit i
+    // need to reandomize seeds except for seed i?
+
+    for(int j = 0; j < sqrt_N_dpf; j+=2){
+      uint64_t* seeds = randomSeed();
+      s.seeds[j] = seeds[i];
+      s.seeds[j+1] = seeds[j+1];
+    }
+
+    shares[i] = s;
+  }
+
+  uint64_t t = 0;
+  Share final = new Share();
+  uint32_t* bits = new uint32_t[2];
+  // now time to deal with the last share
+  for(int i = 0; i < sqrt_N_dpf; i+=2){
+  	if(i != i_star){
+  		uint64_t seed_i = 0;
+  		for(int server = 0; j < number_of_servers-1; server++){
+  			seed_i ^= server.seeds[i];
+  		}
+
+  		final.seeds[i] = seed_i;
+  	}
+  	else{
+  		final.seeds[i] = randomSeed()[0];
+  	}
+  	
+  }
+}
+
+
+
+uint64_t* randomSeed(){
+  auto seeds = new uint64_t[2];
+  byte buffer[16];
+  urandom.read(reinterpret_cast<char *>(buffer), 16);
+  AES_KEY aes_key{};
+  AES_128_Key_Expansion(buffer, &aes_key);
+  block blk;
+
+  block tmp = blk;
+  AES_ecb_encrypt_blk(&blk, &aes_key);
+
+  __int128 num = (__int128) blk;
+  uint64_t half = 0;
+  half = half | num;
+
+  seeds[0] = half;
+  half = 0;
+  num = num >> 64;
+  half = half | num;
+  seeds[1] = half;
+  return seeds;
+}
+
+
 
 uint64_t* testIntegerPRF(){
     auto A = new uint64_t[N][M];
